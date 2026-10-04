@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revendu – stock et bénéfices pour revendeurs Vinted</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--paper:#f4f6f9;--tag:#ffd23f;--ok:#1f9d6b;--bad:#d64545;--line:#d5dbe5;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:1.6rem;font-weight:800;margin:0}
+h2{font-size:1.1rem;margin:28px 0 10px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+button,input{font:inherit}
+input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink)}
+input:focus,button:focus-visible{outline:3px solid var(--tag);outline-offset:1px}
+button{cursor:pointer;border:0;border-radius:8px;padding:10px 16px;font-weight:600;background:var(--ink);color:var(--white)}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button.small{padding:6px 10px;font-size:.85rem}
+.hidden{display:none!important}
+.row{display:grid;gap:10px;grid-template-columns:2fr 1fr 1fr auto;align-items:end}
+label{font-size:.85rem;font-weight:600;display:block;margin-bottom:3px}
+.card{background:var(--white);border:1.5px solid var(--line);border-radius:10px;padding:16px}
+.auth{max-width:380px;margin:60px auto}
+.auth .card{display:grid;gap:12px}
+.msg{font-size:.9rem;color:var(--bad)}
+/* Étiquette de prix : l'élément mémorable */
+.tag{position:relative;background:var(--tag);padding:18px 24px 18px 52px;border-radius:6px 20px 20px 6px;
+  clip-path:polygon(28px 0,100% 0,100% 100%,28px 100%,0 50%);margin-bottom:14px}
+.tag::before{content:"";position:absolute;left:22px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--paper)}
+.tag small{display:block;font-weight:600}
+.tag strong{font-size:2.4rem;font-weight:800;line-height:1.1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats .card strong{display:block;font-size:1.3rem}
+.stats .card span{font-size:.85rem}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border:0}
+.item b{display:block}
+.item span{font-size:.85rem;color:#4a5568}
+.gain{color:var(--ok);font-weight:800}.perte{color:var(--bad);font-weight:800}
+.acts{display:flex;gap:6px;flex-shrink:0}
+.filters{display:flex;gap:6px;margin-bottom:6px}
+.filters button.on{background:var(--ink);color:var(--white)}
+.filters button{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+dialog{border:0;border-radius:12px;padding:20px;max-width:380px;width:92%}
+dialog::backdrop{background:rgba(20,33,61,.5)}
+dialog form{display:grid;gap:10px}
+@media(max-width:600px){.row{grid-template-columns:1fr 1fr}.row>:first-child{grid-column:1/-1}.stats{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+
+<section id="auth" class="auth hidden">
+  <h1>Revendu</h1>
+  <p>Sache ce que tu gagnes vraiment sur chaque article Vinted.</p>
+  <form class="card" id="authForm">
+    <div><label for="email">Email</label><input id="email" type="email" required autocomplete="email"></div>
+    <div><label for="pass">Mot de passe (6 caractères minimum)</label><input id="pass" type="password" required minlength="6" autocomplete="current-password"></div>
+    <p class="msg" id="authMsg"></p>
+    <button id="authBtn">Se connecter</button>
+    <button type="button" class="ghost" id="authSwitch">Créer un compte</button>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <h1>Revendu</h1>
+    <div class="acts">
+      <button class="ghost small" id="planBtn"></button>
+      <button class="ghost small" id="logout">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="tag"><small>Bénéfice de ce mois</small><strong id="monthProfit">0 €</strong></div>
+  <div class="stats">
+    <div class="card"><strong id="stockValue">0 €</strong><span>immobilisés en stock</span></div>
+    <div class="card"><strong id="avgMargin">–</strong><span>marge moyenne</span></div>
+    <div class="card"><strong id="dormant">0</strong><span>articles en stock depuis plus de 60 jours</span></div>
+  </div>
+
+  <h2>Ajouter un article</h2>
+  <form class="row card" id="addForm">
+    <div><label for="n">Article</label><input id="n" required placeholder="Veste Nike Y2K"></div>
+    <div><label for="bp">Prix d'achat (€)</label><input id="bp" type="number" step="0.01" min="0" required></div>
+    <div><label for="bd">Date d'achat</label><input id="bd" type="date" required></div>
+    <button>Ajouter</button>
+  </form>
+
+  <h2>Mes articles</h2>
+  <div class="filters">
+    <button class="on" data-f="stock">En stock</button>
+    <button data-f="sold">Vendus</button>
+    <button class="ghost small" id="csv" style="margin-left:auto">Exporter les ventes (CSV)</button>
+  </div>
+  <div class="card" id="list"></div>
+</section>
+
+<dialog id="sellDlg">
+  <form id="sellForm">
+    <h2 style="margin:0" id="sellTitle"></h2>
+    <div><label for="sp">Prix de vente (€)</label><input id="sp" type="number" step="0.01" min="0" required></div>
+    <div><label for="sc">Frais de port à ta charge (€)</label><input id="sc" type="number" step="0.01" min="0" value="0"></div>
+    <div><label for="sd">Date de vente</label><input id="sd" type="date" required></div>
+    <button>Enregistrer la vente</button>
+    <button type="button" class="ghost" data-close>Annuler</button>
+  </form>
+</dialog>
+
+<dialog id="upDlg">
+  <h2 style="margin-top:0">Passe en illimité : 7 €/mois</h2>
+  <p>L'offre gratuite est limitée à 20 articles. Annulable à tout moment depuis ton compte PayPal.</p>
+  <div id="pp"></div>
+  <button class="ghost" data-close style="margin-top:10px">Plus tard</button>
+</dialog>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ====== À REMPLIR ======
+const CFG = {
+  SUPABASE_URL: "https://sqlnhazygdfdrwjjesmn.supabase.co",
+  SUPABASE_KEY: "sb_publishable_FLrdaWgjG6mhePl9YKu5Pw_rusO7US-",
+  PAYPAL_CLIENT_ID: "COLLE_ICI_TON_CLIENT_ID_PAYPAL",
+  PAYPAL_PLAN_ID: "COLLE_ICI_TON_PLAN_ID_PAYPAL"
+};
+// =======================
+
+const FREE_LIMIT = 20;
+const sb = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
+const $ = s => document.querySelector(s);
+const eur = n => new Intl.NumberFormat("fr-FR", {style:"currency", currency:"EUR"}).format(n || 0);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today = () => new Date().toISOString().slice(0,10);
+const gain = i => +i.sell_price - +i.buy_price - +(i.ship_cost || 0);
+const age = d => Math.floor((Date.now() - new Date(d)) / 864e5);
+
+let items = [], plan = "free", uid = null, filter = "stock", signup = false, sellId = null, ppLoaded = false;
+
+function view(name){ $("#auth").classList.toggle("hidden", name !== "auth"); $("#app").classList.toggle("hidden", name !== "app"); }
+
+sb.auth.onAuthStateChange((_e, session) => {
+  if (session) { uid = session.user.id; load(); } else { uid = null; view("auth"); }
+});
+
+// ----- Connexion / inscription -----
+$("#authSwitch").onclick = () => {
+  signup = !signup;
+  $("#authBtn").textContent = signup ? "Créer mon compte" : "Se connecter";
+  $("#authSwitch").textContent = signup ? "J'ai déjà un compte" : "Créer un compte";
+  $("#authMsg").textContent = "";
+};
+$("#authForm").onsubmit = async e => {
+  e.preventDefault();
+  const creds = {email: $("#email").value, password: $("#pass").value};
+  const {data, error} = signup ? await sb.auth.signUp(creds) : await sb.auth.signInWithPassword(creds);
+  if (error) $("#authMsg").textContent = error.message;
+  else if (signup && !data.session) $("#authMsg").textContent = "Compte créé. Clique sur le lien reçu par email, puis connecte-toi.";
+};
+$("#logout").onclick = () => sb.auth.signOut();
+
+// ----- Données -----
+async function load(){
+  const [a, b] = await Promise.all([
+    sb.from("items").select("*").order("created_at", {ascending:false}),
+    sb.from("profiles").select("plan").eq("user_id", uid).maybeSingle()
+  ]);
+  items = a.data || [];
+  plan = b.data?.plan || "free";
+  view("app");
+  render();
+}
+
+function render(){
+  const now = new Date(), m = now.getMonth(), y = now.getFullYear();
+  const sold = items.filter(i => i.sold), stock = items.filter(i => !i.sold);
+  const month = sold.filter(i => { const d = new Date(i.sell_date); return d.getMonth() === m && d.getFullYear() === y; });
+  $("#monthProfit").textContent = eur(month.reduce((s,i) => s + gain(i), 0));
+  $("#stockValue").textContent = eur(stock.reduce((s,i) => s + +i.buy_price, 0));
+  const rev = sold.reduce((s,i) => s + +i.sell_price, 0);
+  $("#avgMargin").textContent = rev ? Math.round(sold.reduce((s,i) => s + gain(i), 0) / rev * 100) + " %" : "–";
+  $("#dormant").textContent = stock.filter(i => age(i.buy_date) > 60).length;
+  $("#planBtn").textContent = plan === "pro" ? "Illimité" : `Gratuit (${items.length}/${FREE_LIMIT})`;
+
+  const shown = filter === "stock" ? stock : sold;
+  $("#list").innerHTML = shown.length ? shown.map(i => i.sold
+    ? `<div class="item"><div><b>${esc(i.name)}</b><span>Acheté ${eur(i.buy_price)} · vendu ${eur(i.sell_price)}</span></div>
+       <div class="acts"><span class="${gain(i) >= 0 ? "gain" : "perte"}">${gain(i) >= 0 ? "+" : ""}${eur(gain(i))}</span>
+       <button class="ghost small" data-del="${i.id}" aria-label="Supprimer ${esc(i.name)}">Supprimer</button></div></div>`
+    : `<div class="item"><div><b>${esc(i.name)}</b><span>Acheté ${eur(i.buy_price)} · en stock depuis ${age(i.buy_date)} j${age(i.buy_date) > 60 ? " (à baisser de prix ?)" : ""}</span></div>
+       <div class="acts"><button class="small" data-sell="${i.id}">Vendu</button>
+       <button class="ghost small" data-del="${i.id}" aria-label="Supprimer ${esc(i.name)}">Supprimer</button></div></div>`
+  ).join("") : `<p style="margin:0">${filter === "stock" ? "Aucun article en stock. Ajoute ton premier achat ci-dessus." : "Aucune vente enregistrée pour l'instant."}</p>`;
+}
+
+// ----- Actions -----
+document.querySelectorAll(".filters [data-f]").forEach(b => b.onclick = () => {
+  filter = b.dataset.f;
+  document.querySelectorAll(".filters [data-f]").forEach(x => x.classList.toggle("on", x === b));
+  render();
+});
+
+$("#bd").value = today();
+$("#addForm").onsubmit = async e => {
+  e.preventDefault();
+  if (plan !== "pro" && items.length >= FREE_LIMIT) return openUpgrade();
+  const {error} = await sb.from("items").insert({name: $("#n").value, buy_price: $("#bp").value, buy_date: $("#bd").value});
+  if (error) return alert(error.message);
+  e.target.reset(); $("#bd").value = today(); load();
+};
+
+$("#list").onclick = async e => {
+  const sell = e.target.dataset.sell, del = e.target.dataset.del;
+  if (sell) {
+    sellId = sell; $("#sellTitle").textContent = items.find(i => i.id === sell).name;
+    $("#sd").value = today(); $("#sellDlg").showModal();
+  }
+  if (del && confirm("Supprimer cet article ?")) { await sb.from("items").delete().eq("id", del); load(); }
+};
+$("#sellForm").onsubmit = async e => {
+  e.preventDefault();
+  await sb.from("items").update({sold:true, sell_price:$("#sp").value, ship_cost:$("#sc").value || 0, sell_date:$("#sd").value}).eq("id", sellId);
+  $("#sellDlg").close(); e.target.reset(); load();
+};
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
+
+$("#csv").onclick = () => {
+  const rows = [["Article","Date achat","Prix achat","Date vente","Prix vente","Frais port","Benefice"]]
+    .concat(items.filter(i => i.sold).map(i => [i.name, i.buy_date, i.buy_price, i.sell_date, i.sell_price, i.ship_cost, gain(i).toFixed(2)]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], {type:"text/csv"}));
+  a.download = "ventes-revendu.csv"; a.click();
+};
+
+// ----- Abonnement PayPal -----
+$("#planBtn").onclick = () => plan !== "pro" && openUpgrade();
+function openUpgrade(){
+  $("#upDlg").showModal();
+  if (ppLoaded) return;
+  ppLoaded = true;
+  const s = document.createElement("script");
+  s.src = `https://www.paypal.com/sdk/js?client-id=${CFG.PAYPAL_CLIENT_ID}&vault=true&intent=subscription&currency=EUR`;
+  s.onload = () => paypal.Buttons({
+    style: {label: "subscribe"},
+    createSubscription: (_d, actions) => actions.subscription.create({plan_id: CFG.PAYPAL_PLAN_ID}),
+    onApprove: async data => {
+      await sb.from("profiles").update({plan:"pro", paypal_sub:data.subscriptionID}).eq("user_id", uid);
+      $("#upDlg").close(); load();
+    }
+  }).render("#pp");
+  document.head.appendChild(s);
+}
+</script>
+</body>
+</html>
